@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brasil Racers · Campeonato</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --fundo:#ffffff;
+    --fundo-card:#ffffff;
+    --linha:#e4e6e9;
+    --linha-forte:#aeb2b8;
+    --texto:#1a1d21;
+    --texto-fraco:#767c85;
+    --brand:#0a9b45;
+    --brand-escuro:#06722f;
+    --cabecalho:#2b2f38;
+    --amarelo:#f2c200;
+    --verde:#1e9e50;
+    --vermelho:#d1293a;
+  }
+  *{box-sizing:border-box;}
+  html{ overscroll-behavior-y:none; }
+  body{
+    margin:0;
+    font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:var(--fundo);
+    color:var(--texto);
+    min-height:100vh;
+    overscroll-behavior-y:none;
+  }
+  header{
+    background:var(--cabecalho);
+    border-bottom:4px solid var(--brand);
+    padding:12px 20px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:14px;
+    justify-content:space-between;
+    position:sticky;
+    top:0;
+    z-index:100;
+    box-shadow:0 2px 10px rgba(0,0,0,0.06);
+  }
+  .marca{ display:flex; align-items:center; gap:10px; }
+  .marca img{ height:56px; width:auto; display:block; border-radius:6px; }
+  .marca .subtitulo{
+    font-size:13px;
+    font-weight:700;
+    color:var(--amarelo);
+    letter-spacing:0.3px;
+  }
+  .controles{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  button.botao-teste{
+    background:transparent;
+    color:var(--amarelo);
+    border:1px solid var(--amarelo);
+    border-radius:8px;
+    padding:9px 14px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  button.botao-teste:hover{ background:rgba(10,122,61,0.14); }
+  #inputArquivoTeste{ display:none; }
+  main{ max-width:1100px; margin:0 auto; padding:20px; }
+  #statusBox{
+    display:none;
+    background:#f2f7f4;
+    border:1px solid var(--linha);
+    border-left:4px solid var(--brand);
+    padding:12px 16px;
+    border-radius:8px;
+    margin-bottom:18px;
+    font-size:14px;
+    color:var(--texto-fraco);
+  }
+  #statusBox.erro{ display:block; border-left-color:var(--vermelho); color:var(--texto); }
+  .abas{ display:flex; gap:4px; flex-wrap:wrap; }
+  .aba{
+    background:transparent;
+    border:none;
+    color:#c3c8d0;
+    padding:10px 14px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+  .aba:hover{ color:#ffffff; }
+  .aba.ativa{ color:var(--amarelo); border-bottom-color:var(--amarelo); }
+  .painel{ display:none; }
+  .painel.ativo{ display:block; margin-top:20px; }
+  .tabela-wrap{
+    overflow:auto;
+    max-height:70vh;
+    background:var(--fundo-card);
+    border:1px solid var(--linha);
+    border-radius:10px;
+    overscroll-behavior:contain;
+  }
+  table{
+    border-collapse:separate;
+    border-spacing:0;
+    width:100%;
+    font-size:13px;
+    white-space:nowrap;
+  }
+  thead tr.linha-etapa th{
+    background:#f7f8f9;
+    color:var(--texto-fraco);
+    font-weight:600;
+    font-size:11px;
+    height:28px;
+    padding:0 8px;
+    box-sizing:border-box;
+    vertical-align:middle;
+    text-align:center;
+    border-bottom:1px solid var(--linha);
+    position:sticky;
+    top:0;
+    z-index:3;
+  }
+  thead tr.linha-campo th{
+    background:#f7f8f9;
+    color:var(--texto);
+    font-weight:700;
+    padding:8px;
+    text-align:center;
+    border-bottom:2px solid var(--brand);
+    position:sticky;
+    top:28px;
+    z-index:3;
+  }
+  thead tr.linha-campo.cabecalho-unico th{ top:0; }
+  thead th.col-pos, thead th.col-nome, thead th.col-total{ text-align:left; }
+  .col-fixo{ position:sticky; background:#ffffff; }
+  thead th.col-fixo{ z-index:6 !important; }
+  tbody td.col-fixo{ z-index:2; }
+  tbody tr:nth-child(odd) td.col-fixo{ background:#fafafa; }
+  tbody tr:hover td.col-fixo{ background:#e6f4ec; }
+  .col-fixo.borda-fixa{ box-shadow:2px 0 5px rgba(0,0,0,0.12); }
+  tbody td{
+    padding:7px 8px;
+    text-align:center;
+    border-bottom:1px solid var(--linha);
+    border-left:1px solid var(--linha);
+  }
+  th.sep-forte, td.sep-forte{ border-left:2px solid var(--linha-forte) !important; }
+  tbody td.col-pos{ text-align:left; color:var(--texto-fraco); font-weight:700; width:34px; border-left:none; }
+  tbody td.col-nome{ text-align:left; font-weight:600; border-left:none; }
+  tbody td.col-total{ text-align:left; font-weight:800; color:var(--brand); }
+  tbody tr:nth-child(odd) td{ background:#fafafa; }
+  tbody tr:hover td{ background:rgba(10,122,61,0.06); }
+  .ok-presenca{ color:var(--verde); font-weight:700; }
+  .falta-presenca{ color:var(--vermelho); font-weight:700; }
+  .vazio{ color:var(--texto-fraco); }
+  footer{ text-align:center; color:var(--texto-fraco); font-size:12px; padding:24px; }
+  @media (max-width:640px){
+    header{ padding:10px 14px; gap:8px; }
+    .marca img{ height:40px; }
+    .marca .subtitulo{ font-size:12px; }
+    .abas{ width:100%; gap:2px; }
+    .aba{ padding:8px 10px; font-size:12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="marca">
+    <img src="logo.png" alt="Brasil Racers Academy">
+    <div class="subtitulo" id="nomeCampeonato"></div>
+  </div>
+  <div class="abas">
+    <button class="aba ativa" data-painel="painelClassificacao">Classificação</button>
+    <button class="aba" data-painel="painelEvolucao">Evolução</button>
+    <button class="aba" data-painel="painelPresencas">Presenças</button>
+  </div>
+  <div class="controles">
+    <button class="botao-teste" id="botaoTeste" style="display:none;">↑ Testar arquivo</button>
+    <input type="file" id="inputArquivoTeste" accept=".xlsx,.xlsm">
+  </div>
+</header>
+
+<main>
+  <div id="statusBox"></div>
+
+  <div class="painel ativo" id="painelClassificacao"><div class="tabela-wrap" id="tabClassificacao"></div></div>
+  <div class="painel" id="painelEvolucao"><div class="tabela-wrap" id="tabEvolucao"></div></div>
+  <div class="painel" id="painelPresencas"><div class="tabela-wrap" id="tabPresencas"></div></div>
+</main>
+
+<footer id="rodape">Brasil Racers · dados atualizados diretamente da planilha do campeonato</footer>
+
+<script src="campeonato.js"></script>
+<script>
+// ============================================================
+// Utilidades de leitura
+// ============================================================
+
+function celula(sheet, r, c){
+  var addr = XLSX.utils.encode_cell({r:r, c:c});
+  var cell = sheet[addr];
+  if (!cell) return null;
+  if (cell.t === "d" || (cell.w && /^\d{4}-\d{2}-\d{2}/.test(String(cell.v)))) {
+    var d = cell.v instanceof Date ? cell.v : new Date(cell.v);
+    if (!isNaN(d)) {
+      var dd = String(d.getDate()).padStart(2,"0");
+      var mm = String(d.getMonth()+1).padStart(2,"0");
+      return dd+"/"+mm+"/"+d.getFullYear();
+    }
+  }
+  return cell.v;
+}
+
+function texto(v){
+  return (v === null || v === undefined) ? "" : String(v).trim();
+}
+
+// arredonda para no maximo 2 casas e tira zeros a direita
+function num(v){
+  if (v === null || v === undefined || v === "") return null;
+  if (typeof v === "number"){
+    var n = Math.round(v * 100) / 100;
+    return String(n).replace(".", ",");
+  }
+  return v;
+}
+
+function achar(wb, teste){
+  var nomes = wb.SheetNames;
+  for (var i = 0; i < nomes.length; i++){
+    if (teste(nomes[i].toLowerCase())) return nomes[i];
+  }
+  return null;
+}
+
+// ============================================================
+// CLASSIFICAÇÃO
+// aba: contem "classific" + um numero (ex.: "CLASSIFICAÇÃO 30")
+// linha 1 -> numero da etapa | linha 2 -> data | linha 4 -> cabecalho
+// blocos de 4 colunas: Posicao / Pontos / Bonus / Fator Grid
+// ============================================================
+
+function parseClassificacao(wb){
+  var nomeAba = achar(wb, function(n){ return n.indexOf("classific") !== -1 && /\d/.test(n); });
+  if (!nomeAba) nomeAba = achar(wb, function(n){ return n.indexOf("classific") !== -1; });
+  if (!nomeAba) return null;
+  var sheet = wb.Sheets[nomeAba];
+  if (!sheet) return null;
+  var range = XLSX.utils.decode_range(sheet["!ref"]);
+
+  var blocos = [];
+  for (var c = 0; c <= range.e.c; c++){
+    var h = texto(celula(sheet, 3, c)).toLowerCase();
+    if (h.indexOf("posi") === 0){
+      var numEtapa = celula(sheet, 0, c);
+      if (typeof numEtapa === "number"){
+        blocos.push({col:c, label:numEtapa+"ª etapa", date:celula(sheet, 1, c)});
+      }
+    }
+  }
+
+  var pilotos = [];
+  for (var r = 4; r <= range.e.r; r++){
+    var nome = texto(celula(sheet, r, 1));
+    if (!nome) continue;
+    var etapas = blocos.map(function(b){
+      return {
+        pos:   celula(sheet, r, b.col),
+        pts:   celula(sheet, r, b.col+1),
+        bonus: celula(sheet, r, b.col+2),
+        grid:  celula(sheet, r, b.col+3)
+      };
+    });
+    pilotos.push({
+      ordem: celula(sheet, r, 0),
+      nome: nome,
+      total: celula(sheet, r, 2),
+      mv: celula(sheet, r, 3),
+      fator: celula(sheet, r, 4),
+      etapas: etapas
+    });
+  }
+
+  // mantem apenas as etapas ja realizadas (alguem tem posicao)
+  var usadas = [];
+  blocos.forEach(function(b, i){
+    var rodou = pilotos.some(function(p){
+      return p.etapas[i].pos !== null && p.etapas[i].pos !== "";
+    });
+    if (rodou) usadas.push(i);
+  });
+
+  return {
+    stages: usadas.map(function(i){ return blocos[i]; }),
+    pilotos: pilotos.map(function(p){
+      return {
+        ordem: p.ordem, nome: p.nome, total: p.total, mv: p.mv, fator: p.fator,
+        etapas: usadas.map(function(i){ return p.etapas[i]; })
+      };
+    })
+  };
+}
+
+// ============================================================
+// EVOLUÇÃO
+// aba: contem "evol"
+// linha 2 -> rotulo da etapa | linha 3 -> data | dados a partir da linha 5
+// blocos de 5 colunas: Piloto / Pontos / Dif. Lider / Dif. 3º / Dif. Proximo
+// ============================================================
+
+function parseEvolucao(wb){
+  var nomeAba = achar(wb, function(n){ return n.indexOf("evol") !== -1; });
+  if (!nomeAba) return null;
+  var sheet = wb.Sheets[nomeAba];
+  if (!sheet) return null;
+  var range = XLSX.utils.decode_range(sheet["!ref"]);
+
+  // acha os blocos e mantem so os espacados de 5 em 5 a partir do primeiro
+  var brutos = [];
+  for (var c = 0; c <= range.e.c; c++){
+    var v = texto(celula(sheet, 1, c));
+    if (v && v.toLowerCase().indexOf("etapa") !== -1){
+      brutos.push({col:c, label:v, date:celula(sheet, 2, c)});
+    }
+  }
+  var blocos = [];
+  brutos.forEach(function(b){
+    if (!blocos.length){ blocos.push(b); return; }
+    if (b.col - blocos[blocos.length-1].col === 5) blocos.push(b);
+  });
+
+  var posicoes = [];
+  for (var r = 4; r <= range.e.r; r++){
+    var temDado = blocos.some(function(b){ return texto(celula(sheet, r, b.col)) !== ""; });
+    if (!temDado) break;
+    posicoes.push({
+      posicao: r - 3,
+      etapas: blocos.map(function(b){
+        return {
+          piloto:     celula(sheet, r, b.col),
+          pontos:     celula(sheet, r, b.col+1),
+          difLider:   celula(sheet, r, b.col+2),
+          difTerceiro:celula(sheet, r, b.col+3),
+          difProximo: celula(sheet, r, b.col+4)
+        };
+      })
+    });
+  }
+
+  // mantem apenas as etapas ja realizadas
+  var usadas = [];
+  blocos.forEach(function(b, i){
+    var rodou = posicoes.some(function(p){ return texto(p.etapas[i].piloto) !== ""; });
+    if (rodou) usadas.push(i);
+  });
+
+  return {
+    stages: usadas.map(function(i){ return blocos[i]; }),
+    posicoes: posicoes.map(function(p){
+      return { posicao:p.posicao, etapas: usadas.map(function(i){ return p.etapas[i]; }) };
+    })
+  };
+}
+
+// ============================================================
+// PRESENÇAS
+// aba: contem "presen"
+// linha 3 -> cabecalho | dados a partir da linha 4
+// valor = nome do piloto (presente) / "faltou" / "XXX" (etapa nao realizada)
+// ============================================================
+
+function parsePresencas(wb){
+  var nomeAba = achar(wb, function(n){ return n.indexOf("presen") !== -1; });
+  if (!nomeAba) return null;
+  var sheet = wb.Sheets[nomeAba];
+  if (!sheet) return null;
+  var range = XLSX.utils.decode_range(sheet["!ref"]);
+
+  var etapaCols = [], resumoCols = [];
+  for (var c = 1; c <= range.e.c; c++){
+    var h = texto(celula(sheet, 2, c));
+    if (!h) continue;
+    if (h.toLowerCase().indexOf("etapa") !== -1) etapaCols.push({col:c, label:h.replace(/\s+/g," ")});
+    else resumoCols.push({col:c, label:h.replace(/\s+/g," ")});
+  }
+
+  var pilotos = [];
+  for (var r = 3; r <= range.e.r; r++){
+    var bruto = celula(sheet, r, 0);
+    var nome = texto(bruto);
+    // so linhas com nome de piloto de verdade (descarta 0, vazios e "xxx")
+    if (typeof bruto !== "string" || !nome || /^x+$/i.test(nome)) continue;
+    pilotos.push({
+      nome: nome,
+      etapas: etapaCols.map(function(e){ return texto(celula(sheet, r, e.col)); }),
+      resumo: resumoCols.map(function(e){ return celula(sheet, r, e.col); })
+    });
+  }
+
+  // mantem apenas as etapas ja realizadas (algum valor diferente de XXX / vazio)
+  var usadas = [];
+  etapaCols.forEach(function(e, i){
+    var rodou = pilotos.some(function(p){
+      var v = p.etapas[i];
+      return v !== "" && v.toUpperCase() !== "XXX";
+    });
+    if (rodou) usadas.push(i);
+  });
+
+  return {
+    etapas: usadas.map(function(i){ return etapaCols[i].label; }),
+    resumoLabels: resumoCols.map(function(e){ return e.label; }),
+    pilotos: pilotos.map(function(p){
+      return {
+        nome: p.nome,
+        etapas: usadas.map(function(i){ return p.etapas[i]; }),
+        resumo: p.resumo
+      };
+    })
+  };
+}
+
+function extrairDados(wb){
+  return {
+    classificacao: parseClassificacao(wb),
+    evolucao: parseEvolucao(wb),
+    presencas: parsePresencas(wb)
+  };
+}
+
+// ============================================================
+// Renderização
+// ============================================================
+
+function vazio(){ return '<span class="vazio">–</span>'; }
+function cel(v){ var t = num(v); return (t === null || t === "") ? vazio() : t; }
+
+function ajustarPosicoesFixas(container){
+  var posEl = container.querySelector(".col-pos.col-fixo");
+  var nomeEl = container.querySelector(".col-nome.col-fixo");
+  if (posEl){
+    container.querySelectorAll(".col-pos.col-fixo").forEach(function(el){ el.style.left = "0px"; });
+    var posWidth = posEl.getBoundingClientRect().width;
+    container.querySelectorAll(".col-nome.col-fixo").forEach(function(el){ el.style.left = posWidth + "px"; });
+    if (nomeEl){
+      var nomeWidth = nomeEl.getBoundingClientRect().width;
+      container.querySelectorAll(".col-total.col-fixo").forEach(function(el){ el.style.left = (posWidth + nomeWidth) + "px"; });
+    }
+  } else if (nomeEl){
+    container.querySelectorAll(".col-nome.col-fixo").forEach(function(el){ el.style.left = "0px"; });
+  }
+}
+
+function renderClassificacao(container, dados){
+  if (!dados || !dados.pilotos || !dados.pilotos.length){
+    container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
+    return;
+  }
+  var html = '<table><thead>';
+  html += '<tr class="linha-etapa">';
+  html += '<th class="col-pos col-fixo"></th><th class="col-nome col-fixo"></th><th class="col-total col-fixo borda-fixa"></th>';
+  html += '<th class="sep-forte" colspan="2">Geral</th>';
+  dados.stages.forEach(function(s){
+    html += '<th class="sep-forte" colspan="4">'+s.label+(s.date ? ' · '+s.date : '')+'</th>';
+  });
+  html += '</tr><tr class="linha-campo">';
+  html += '<th class="col-pos col-fixo">#</th><th class="col-nome col-fixo">Piloto</th><th class="col-total col-fixo borda-fixa">Total</th>';
+  html += '<th class="sep-forte">10 MV</th><th>Fator Pres.</th>';
+  dados.stages.forEach(function(){
+    html += '<th class="sep-forte">Pos</th><th>Pts</th><th>Bônus</th><th>Fator Grid</th>';
+  });
+  html += '</tr></thead><tbody>';
+  dados.pilotos.forEach(function(p, idx){
+    html += '<tr>';
+    html += '<td class="col-pos col-fixo">'+(p.ordem !== null && p.ordem !== "" ? p.ordem : (idx+1))+'</td>';
+    html += '<td class="col-nome col-fixo">'+p.nome+'</td>';
+    html += '<td class="col-total col-fixo borda-fixa">'+cel(p.total)+'</td>';
+    html += '<td class="sep-forte">'+cel(p.mv)+'</td><td>'+cel(p.fator)+'</td>';
+    p.etapas.forEach(function(e){
+      html += '<td class="sep-forte">'+cel(e.pos)+'</td>';
+      html += '<td>'+cel(e.pts)+'</td>';
+      html += '<td>'+cel(e.bonus)+'</td>';
+      html += '<td>'+cel(e.grid)+'</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  ajustarPosicoesFixas(container);
+}
+
+function renderEvolucao(container, dados){
+  if (!dados || !dados.posicoes || !dados.posicoes.length){
+    container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
+    return;
+  }
+  var html = '<table><thead>';
+  html += '<tr class="linha-etapa"><th class="col-pos col-fixo borda-fixa"></th>';
+  dados.stages.forEach(function(s){
+    html += '<th class="sep-forte" colspan="5">'+s.label+(s.date ? ' · '+s.date : '')+'</th>';
+  });
+  html += '</tr><tr class="linha-campo"><th class="col-pos col-fixo borda-fixa">#</th>';
+  dados.stages.forEach(function(){
+    html += '<th class="sep-forte">Piloto</th><th>Pontos</th><th>Dif. Líder</th><th>Dif. 3º</th><th>Dif. Próximo</th>';
+  });
+  html += '</tr></thead><tbody>';
+  dados.posicoes.forEach(function(p){
+    html += '<tr><td class="col-pos col-fixo borda-fixa">'+p.posicao+'</td>';
+    p.etapas.forEach(function(e){
+      html += '<td class="sep-forte">'+(texto(e.piloto) ? e.piloto : vazio())+'</td>';
+      html += '<td>'+cel(e.pontos)+'</td>';
+      html += '<td>'+cel(e.difLider)+'</td>';
+      html += '<td>'+cel(e.difTerceiro)+'</td>';
+      html += '<td>'+cel(e.difProximo)+'</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  ajustarPosicoesFixas(container);
+}
+
+function renderPresencas(container, dados){
+  if (!dados || !dados.pilotos || !dados.pilotos.length){
+    container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
+    return;
+  }
+  var html = '<table><thead><tr class="linha-campo cabecalho-unico">';
+  html += '<th class="col-nome col-fixo borda-fixa">Piloto</th>';
+  dados.etapas.forEach(function(e){ html += '<th class="sep-forte">'+e+'</th>'; });
+  dados.resumoLabels.forEach(function(e){ html += '<th class="sep-forte">'+e+'</th>'; });
+  html += '</tr></thead><tbody>';
+  dados.pilotos.forEach(function(p){
+    html += '<tr><td class="col-nome col-fixo borda-fixa">'+p.nome+'</td>';
+    p.etapas.forEach(function(v){
+      var classe = "sep-forte", texto_ = vazio();
+      if (/^falt/i.test(v)){ classe += " falta-presenca"; texto_ = "faltou"; }
+      else if (v && v.toUpperCase() !== "XXX"){ classe += " ok-presenca"; texto_ = "ok"; }
+      html += '<td class="'+classe+'">'+texto_+'</td>';
+    });
+    p.resumo.forEach(function(v, i){
+      var t;
+      if (/participa/i.test(dados.resumoLabels[i]) && typeof v === "number"){
+        t = Math.round(v * 100) + "%";
+      } else {
+        t = cel(v);
+      }
+      html += '<td class="sep-forte">'+t+'</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  ajustarPosicoesFixas(container);
+}
+
+function renderTudo(dados){
+  renderClassificacao(document.getElementById("tabClassificacao"), dados.classificacao);
+  renderEvolucao(document.getElementById("tabEvolucao"), dados.evolucao);
+  renderPresencas(document.getElementById("tabPresencas"), dados.presencas);
+}
+
+// ============================================================
+// Carregamento
+// ============================================================
+
+var statusBox = document.getElementById("statusBox");
+
+function setStatus(msg, tipo){
+  statusBox.textContent = msg;
+  statusBox.className = tipo || "";
+}
+
+if (new URLSearchParams(location.search).get("admin") === "cido") {
+  document.getElementById("botaoTeste").style.display = "";
+}
+
+document.getElementById("nomeCampeonato").textContent = CAMPEONATO.nome;
+document.getElementById("rodape").textContent = "Brasil Racers · " + CAMPEONATO.nome + " · dados atualizados diretamente da planilha do campeonato";
+
+function carregar(){
+  setStatus("Buscando planilha " + CAMPEONATO.arquivo + "...", "");
+  fetch(CAMPEONATO.arquivo + "?t=" + Date.now())
+    .then(function(res){
+      if (!res.ok) throw new Error("Arquivo não encontrado (" + res.status + ")");
+      return res.arrayBuffer();
+    })
+    .then(function(buf){
+      var wb = XLSX.read(buf, {type:"array", cellDates:true});
+      renderTudo(extrairDados(wb));
+      setStatus("Página carregada em " + new Date().toLocaleString("pt-BR") + ".", "ok");
+    })
+    .catch(function(err){
+      setStatus("Não consegui carregar " + CAMPEONATO.arquivo + ": " + err.message +
+                ". Confira se o arquivo foi enviado ao repositório com esse nome exato.", "erro");
+    });
+}
+
+document.querySelectorAll(".aba").forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.querySelectorAll(".aba").forEach(function(b){ b.classList.remove("ativa"); });
+    document.querySelectorAll(".painel").forEach(function(p){ p.classList.remove("ativo"); });
+    btn.classList.add("ativa");
+    var painel = document.getElementById(btn.dataset.painel);
+    painel.classList.add("ativo");
+    var wrap = painel.querySelector(".tabela-wrap");
+    if (wrap) ajustarPosicoesFixas(wrap);
+  });
+});
+
+document.getElementById("botaoTeste").addEventListener("click", function(){
+  document.getElementById("inputArquivoTeste").click();
+});
+
+document.getElementById("inputArquivoTeste").addEventListener("change", function(e){
+  var file = e.target.files[0];
+  if (!file) return;
+  setStatus("Lendo arquivo local " + file.name + "...", "");
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try {
+      var wb = XLSX.read(ev.target.result, {type:"array", cellDates:true});
+      renderTudo(extrairDados(wb));
+      setStatus("Pré-visualização de " + file.name + " (este teste não altera o site publicado).", "ok");
+    } catch(err){
+      setStatus("Não consegui ler esse arquivo: " + err.message, "erro");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function recalcularPainelAtivo(){
+  var painelAtivo = document.querySelector(".painel.ativo");
+  if (!painelAtivo) return;
+  var wrap = painelAtivo.querySelector(".tabela-wrap");
+  if (wrap) ajustarPosicoesFixas(wrap);
+}
+window.addEventListener("resize", recalcularPainelAtivo);
+
+var logoHeader = document.querySelector(".marca img");
+if (logoHeader && !logoHeader.complete) {
+  logoHeader.addEventListener("load", recalcularPainelAtivo);
+}
+
+carregar();
+</script>
+</body>
+</html>
