@@ -165,6 +165,32 @@
     .marca .subtitulo{ font-size:12px; }
     .abas{ width:100%; gap:2px; }
     .aba{ padding:8px 10px; font-size:12px; }
+
+    /* no celular: aperta as colunas para caber uma etapa inteira na tela */
+    main{ padding:12px 8px; }
+    table{ font-size:11px; }
+    tbody td{ padding:5px 3px; }
+    /* cabeçalhos das colunas quebram em duas linhas (Fator / Grid) */
+    thead tr.linha-campo th{
+      padding:5px 3px;
+      font-size:11px;
+      white-space:normal;
+      line-height:1.15;
+    }
+    tbody td.col-pos{ width:22px; padding-left:4px; padding-right:2px; }
+    /* nome do piloto: largura fixa, quebra só nos espaços */
+    thead th.col-nome, tbody td.col-nome{
+      width:86px;
+      min-width:86px;
+      max-width:86px;
+      white-space:normal;
+      word-break:normal;
+      overflow-wrap:normal;
+      line-height:1.15;
+      padding-left:4px;
+      padding-right:4px;
+    }
+    tbody td.col-total{ padding-left:4px; padding-right:4px; }
   }
 </style>
 </head>
