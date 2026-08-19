@@ -10,6 +10,6 @@
 // ============================================================
 
 const CAMPEONATO = {
-  nome: "Pelada do Gui 2026",
+  nome: "Pelada Brasil Racers 2026",
   arquivo: "pelada-do-gui.xlsx"
 };
