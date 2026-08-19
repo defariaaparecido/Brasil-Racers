@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- trava o site no modo claro: impede o celular de inverter as cores -->
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
 <title>Brasil Racers · Campeonato</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -21,7 +24,10 @@
     --vermelho:#d1293a;
   }
   *{box-sizing:border-box;}
-  html{ overscroll-behavior-y:none; }
+  html{
+    overscroll-behavior-y:none;
+    color-scheme:only light;   /* nao deixa o navegador escurecer a pagina */
+  }
   body{
     margin:0;
     font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
