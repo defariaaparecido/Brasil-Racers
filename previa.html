@@ -239,7 +239,7 @@
 <main>
   <div id="statusBox"></div>
   <!-- FAIXA DE PRÉVIA (retirar na publicação definitiva) -->
-  <div id="faixaPrevia">PRÉVIA · colunas RM e RK em avaliação. O site oficial do campeonato não foi alterado.</div>
+  <div id="faixaPrevia">PRÉVIA · colunas RM e Pos. RM em avaliação. O site oficial do campeonato não foi alterado.</div>
 
   <div class="painel ativo" id="painelClassificacao">
     <div class="barra-ordem">
@@ -590,9 +590,9 @@ function renderClassificacao(container, dados){
   }
   if (legenda && dados.ritmo){
     legenda.innerHTML = '<b>RM</b> = Resultado Médio: média de pontos nas etapas disputadas (Pontos + Bônus, sem descarte). ' +
-      '<b>RK</b> = colocação no RM. Entra no RK quem disputou pelo menos <b>' + dados.ritmo.minimo +
+      '<b>Pos. RM</b> = colocação do piloto no RM. Só entra quem disputou pelo menos <b>' + dados.ritmo.minimo +
       '</b> das <b>' + dados.ritmo.totalEtapas + '</b> etapas realizadas (30%). Hoje: <b>' +
-      dados.ritmo.elegiveis + '</b> pilotos no RK.';
+      dados.ritmo.elegiveis + '</b> pilotos com RM.';
   }
   var html = '<table><thead>';
   html += '<tr class="linha-etapa">';
@@ -603,7 +603,7 @@ function renderClassificacao(container, dados){
   });
   html += '</tr><tr class="linha-campo">';
   html += '<th class="col-pos col-fixo">#</th><th class="col-nome col-fixo">Piloto</th><th class="col-total col-fixo borda-fixa">Total</th>';
-  html += '<th class="sep-forte">10 MV</th><th>Fator Pres.</th><th>RM</th><th>RK</th>';
+  html += '<th class="sep-forte">10 MV</th><th>Fator Pres.</th><th>RM</th><th>Pos. RM</th>';
   dados.stages.forEach(function(){
     html += '<th class="sep-forte">Pos</th><th>Pts</th><th>Bônus</th><th>Fator Grid</th>';
   });
