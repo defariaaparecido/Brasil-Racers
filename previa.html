@@ -6,7 +6,7 @@
 <!-- trava o site no modo claro: impede o celular de inverter as cores -->
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
-<title>Brasil Racers · Prévia do Ritmo</title>
+<title>Brasil Racers · Prévia do Resultado Médio</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
@@ -239,13 +239,13 @@
 <main>
   <div id="statusBox"></div>
   <!-- FAIXA DE PRÉVIA (retirar na publicação definitiva) -->
-  <div id="faixaPrevia">PRÉVIA · colunas RITMO e RK em avaliação. O site oficial do campeonato não foi alterado.</div>
+  <div id="faixaPrevia">PRÉVIA · colunas RM e RK em avaliação. O site oficial do campeonato não foi alterado.</div>
 
   <div class="painel ativo" id="painelClassificacao">
     <div class="barra-ordem">
       <span>Ordenar por:</span>
       <button type="button" id="ordemGeral" class="ativo">Classificação geral</button>
-      <button type="button" id="ordemRitmo">Ritmo</button>
+      <button type="button" id="ordemRitmo">Resultado Médio</button>
     </div>
     <div class="tabela-wrap" id="tabClassificacao"></div>
     <div class="legenda-ritmo" id="legendaRitmo"></div>
@@ -589,8 +589,8 @@ function renderClassificacao(container, dados){
     });
   }
   if (legenda && dados.ritmo){
-    legenda.innerHTML = '<b>RITMO</b> = média de pontos por etapa disputada (Pontos + Bônus, sem descarte). ' +
-      '<b>RK</b> = colocação no ritmo. Entra no RK quem disputou pelo menos <b>' + dados.ritmo.minimo +
+    legenda.innerHTML = '<b>RM</b> = Resultado Médio: média de pontos nas etapas disputadas (Pontos + Bônus, sem descarte). ' +
+      '<b>RK</b> = colocação no RM. Entra no RK quem disputou pelo menos <b>' + dados.ritmo.minimo +
       '</b> das <b>' + dados.ritmo.totalEtapas + '</b> etapas realizadas (30%). Hoje: <b>' +
       dados.ritmo.elegiveis + '</b> pilotos no RK.';
   }
@@ -603,7 +603,7 @@ function renderClassificacao(container, dados){
   });
   html += '</tr><tr class="linha-campo">';
   html += '<th class="col-pos col-fixo">#</th><th class="col-nome col-fixo">Piloto</th><th class="col-total col-fixo borda-fixa">Total</th>';
-  html += '<th class="sep-forte">10 MV</th><th>Fator Pres.</th><th>Ritmo</th><th>RK</th>';
+  html += '<th class="sep-forte">10 MV</th><th>Fator Pres.</th><th>RM</th><th>RK</th>';
   dados.stages.forEach(function(){
     html += '<th class="sep-forte">Pos</th><th>Pts</th><th>Bônus</th><th>Fator Grid</th>';
   });
