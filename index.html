@@ -164,6 +164,18 @@
   .ok-presenca{ color:var(--verde); font-weight:700; }
   .falta-presenca{ color:var(--vermelho); font-weight:700; }
   .vazio{ color:var(--texto-fraco); }
+  /* ===== RITMO / RK ===== */
+  tbody td.col-ritmo{ font-weight:700; }
+  tbody td.col-rk{ font-weight:800; color:var(--brand); }
+  tbody td.col-rk.top3{ background:var(--amarelo) !important; color:var(--cabecalho); }
+  .barra-ordem{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:10px; font-size:13px; color:var(--texto-fraco); }
+  .barra-ordem button{
+    background:#ffffff; color:var(--texto); border:1px solid var(--linha-forte);
+    border-radius:8px; padding:7px 12px; font-size:13px; font-weight:700; cursor:pointer;
+  }
+  .barra-ordem button.ativo{ background:var(--cabecalho); color:var(--amarelo); border-color:var(--cabecalho); }
+  .legenda-ritmo{ margin:10px 2px 0; font-size:12px; line-height:1.5; color:var(--texto-fraco); }
+  .legenda-ritmo b{ color:var(--texto); }
   footer{ text-align:center; color:var(--texto-fraco); font-size:12px; padding:24px; }
   @media (max-width:640px){
     header{ padding:10px 14px; gap:8px; }
@@ -221,7 +233,15 @@
 <main>
   <div id="statusBox"></div>
 
-  <div class="painel ativo" id="painelClassificacao"><div class="tabela-wrap" id="tabClassificacao"></div></div>
+  <div class="painel ativo" id="painelClassificacao">
+    <div class="barra-ordem">
+      <span>Ordenar por:</span>
+      <button type="button" id="ordemGeral" class="ativo">Classificação geral</button>
+      <button type="button" id="ordemRitmo">Resultado Médio</button>
+    </div>
+    <div class="tabela-wrap" id="tabClassificacao"></div>
+    <div class="legenda-ritmo" id="legendaRitmo"></div>
+  </div>
   <div class="painel" id="painelEvolucao"><div class="tabela-wrap" id="tabEvolucao"></div></div>
   <div class="painel" id="painelPresencas"><div class="tabela-wrap" id="tabPresencas"></div></div>
 </main>
@@ -261,6 +281,50 @@ function num(v){
     return String(n).replace(".", ",");
   }
   return v;
+}
+
+// le um numero mesmo quando a celula vem como texto com asterisco ("35,2*")
+function valor(v){
+  if (typeof v === "number") return v;
+  if (typeof v === "string"){
+    var n = parseFloat(v.replace(/\*/g, "").replace(",", ".").trim());
+    return isNaN(n) ? 0 : n;
+  }
+  return 0;
+}
+
+// ============================================================
+// RITMO
+// ritmo = (Pontos + Bonus de todas as etapas disputadas, SEM descarte)
+//         dividido pelo numero de etapas disputadas
+// RK    = colocacao no ritmo; so entra quem disputou pelo menos
+//         30% das etapas realizadas (arredondado para cima)
+// ============================================================
+
+var CORTE_RITMO = 0.30;
+
+function calcularRitmo(pilotos, totalEtapas){
+  var minimo = Math.ceil(CORTE_RITMO * totalEtapas - 1e-9);
+  if (minimo < 1) minimo = 1;
+  pilotos.forEach(function(p){
+    var part = 0, soma = 0;
+    p.etapas.forEach(function(e){
+      if (e.pos !== null && e.pos !== ""){
+        part++;
+        soma += valor(e.pts) + valor(e.bonus);
+      }
+    });
+    p.part = part;
+    p.ritmo = (part >= minimo) ? soma / part : null;
+    p.rk = null;
+  });
+  var elegiveis = pilotos.filter(function(p){ return p.ritmo !== null; });
+  elegiveis.sort(function(a, b){
+    if (b.ritmo !== a.ritmo) return b.ritmo - a.ritmo;
+    return valor(b.total) - valor(a.total);
+  });
+  elegiveis.forEach(function(p, i){ p.rk = i + 1; });
+  return { minimo: minimo, totalEtapas: totalEtapas, elegiveis: elegiveis.length };
 }
 
 function achar(wb, teste){
@@ -328,14 +392,17 @@ function parseClassificacao(wb){
     if (rodou) usadas.push(i);
   });
 
+  var lista = pilotos.map(function(p){
+    return {
+      ordem: p.ordem, nome: p.nome, total: p.total, mv: p.mv, fator: p.fator,
+      etapas: usadas.map(function(i){ return p.etapas[i]; })
+    };
+  });
+
   return {
     stages: usadas.map(function(i){ return blocos[i]; }),
-    pilotos: pilotos.map(function(p){
-      return {
-        ordem: p.ordem, nome: p.nome, total: p.total, mv: p.mv, fator: p.fator,
-        etapas: usadas.map(function(i){ return p.etapas[i]; })
-      };
-    })
+    pilotos: lista,
+    ritmo: calcularRitmo(lista, usadas.length)
   };
 }
 
@@ -489,31 +556,59 @@ function ajustarPosicoesFixas(container){
   }
 }
 
+var ordemClassificacao = "geral";   // "geral" ou "ritmo"
+var dadosClassificacao = null;
+
+function ritmoTxt(v){
+  return (v === null || v === undefined) ? vazio() : v.toFixed(1).replace(".", ",");
+}
+
 function renderClassificacao(container, dados){
+  dadosClassificacao = dados;
+  var legenda = document.getElementById("legendaRitmo");
   if (!dados || !dados.pilotos || !dados.pilotos.length){
     container.innerHTML = '<p class="vazio" style="padding:16px;">Sem dados para exibir.</p>';
+    if (legenda) legenda.innerHTML = "";
     return;
+  }
+  var linhas = dados.pilotos.map(function(p, idx){ return {p:p, idx:idx}; });
+  if (ordemClassificacao === "ritmo"){
+    linhas.sort(function(a, b){
+      if (a.p.rk !== null && b.p.rk !== null) return a.p.rk - b.p.rk;
+      if (a.p.rk !== null) return -1;
+      if (b.p.rk !== null) return 1;
+      return a.idx - b.idx;
+    });
+  }
+  if (legenda && dados.ritmo){
+    legenda.innerHTML = '<b>RM</b> = Resultado Médio: média de pontos nas etapas disputadas (Pontos + Bônus, sem descarte). ' +
+      '<b>Pos. RM</b> = colocação do piloto no RM. Só entra quem disputou pelo menos <b>' + dados.ritmo.minimo +
+      '</b> das <b>' + dados.ritmo.totalEtapas + '</b> etapas realizadas (30%). Hoje: <b>' +
+      dados.ritmo.elegiveis + '</b> pilotos com RM.';
   }
   var html = '<table><thead>';
   html += '<tr class="linha-etapa">';
   html += '<th class="col-pos col-fixo"></th><th class="col-nome col-fixo"></th><th class="col-total col-fixo borda-fixa"></th>';
-  html += '<th class="sep-forte" colspan="2">Geral</th>';
+  html += '<th class="sep-forte" colspan="4">Geral</th>';
   dados.stages.forEach(function(s){
     html += '<th class="sep-forte" colspan="4">'+s.label+(s.date ? ' · '+s.date : '')+'</th>';
   });
   html += '</tr><tr class="linha-campo">';
   html += '<th class="col-pos col-fixo">#</th><th class="col-nome col-fixo">Piloto</th><th class="col-total col-fixo borda-fixa">Total</th>';
-  html += '<th class="sep-forte">10 MV</th><th>Fator Pres.</th>';
+  html += '<th class="sep-forte">10 MV</th><th>Fator Pres.</th><th>RM</th><th>Pos. RM</th>';
   dados.stages.forEach(function(){
     html += '<th class="sep-forte">Pos</th><th>Pts</th><th>Bônus</th><th>Fator Grid</th>';
   });
   html += '</tr></thead><tbody>';
-  dados.pilotos.forEach(function(p, idx){
+  linhas.forEach(function(l){
+    var p = l.p, idx = l.idx;
     html += '<tr>';
     html += '<td class="col-pos col-fixo">'+(p.ordem !== null && p.ordem !== "" ? p.ordem : (idx+1))+'</td>';
     html += '<td class="col-nome col-fixo">'+p.nome+'</td>';
     html += '<td class="col-total col-fixo borda-fixa">'+cel(p.total)+'</td>';
     html += '<td class="sep-forte">'+cel(p.mv)+'</td><td>'+cel(p.fator)+'</td>';
+    html += '<td class="col-ritmo">'+ritmoTxt(p.ritmo)+'</td>';
+    html += '<td class="col-rk'+(p.rk !== null && p.rk <= 3 ? ' top3' : '')+'">'+(p.rk !== null ? p.rk+'º' : vazio())+'</td>';
     p.etapas.forEach(function(e){
       html += '<td class="sep-forte">'+cel(e.pos)+'</td>';
       html += '<td>'+cel(e.pts)+'</td>';
@@ -645,6 +740,17 @@ document.querySelectorAll(".aba").forEach(function(btn){
     if (wrap) ajustarPosicoesFixas(wrap);
   });
 });
+
+function trocarOrdem(nova){
+  ordemClassificacao = nova;
+  document.getElementById("ordemGeral").classList.toggle("ativo", nova === "geral");
+  document.getElementById("ordemRitmo").classList.toggle("ativo", nova === "ritmo");
+  var cont = document.getElementById("tabClassificacao");
+  renderClassificacao(cont, dadosClassificacao);
+  cont.scrollTop = 0;
+}
+document.getElementById("ordemGeral").addEventListener("click", function(){ trocarOrdem("geral"); });
+document.getElementById("ordemRitmo").addEventListener("click", function(){ trocarOrdem("ritmo"); });
 
 document.getElementById("botaoTeste").addEventListener("click", function(){
   document.getElementById("inputArquivoTeste").click();
